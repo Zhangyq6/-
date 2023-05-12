@@ -1,0 +1,112 @@
+#include<iostream>
+#include<string>
+using namespace std;
+
+string redt[5] = { "iceman","lion","wolf","ninja","dragon" };
+string bluet[5] = { "lion", "dragon", "ninja", "iceman", "wolf" };
+
+class army {
+public:
+	int life;
+	int troop[5];
+	bool stop=false;
+	int it = 0;//准备制造编号为it的士兵
+	int troopnum[5] = { 0 };
+	int wholetroop = 0;//总的士兵数目
+	army(int Life, int t0, int t1, int t2, int t3, int t4) {
+		life = Life;
+		troop[0] = t0;
+		troop[1] = t1;
+		troop[2] = t2;
+		troop[3] = t3;
+		troop[4] = t4;
+	}
+};
+
+void printtime(int time) {
+	string timep;
+	timep = to_string(time);
+	while (timep.size() < 3) {
+		timep = "0" + timep;
+	}
+	cout << timep;
+}
+
+int main() {
+	int t = 0;
+	cin >> t;
+	int item = 0;
+	while (t--) {
+		//数据读入
+		int wholelife = 0;
+		cin >> wholelife;
+		int dragon, ninja, iceman, lion, wolf;
+		cin >> dragon >> ninja >> iceman >> lion >> wolf;
+		bool stop = false;
+		int time = 0;
+		cout << "Case:" << ++item << endl;
+
+		//定义类
+		army red(wholelife, iceman, lion, wolf, ninja, dragon); 
+		army blue(wholelife, lion, dragon, ninja, iceman, wolf);//lion、dragon、ninja、iceman、wolf
+
+		//制造武士的循环
+		while (!stop) {
+			//红魔军团部分
+			if (!red.stop) {
+				printtime(time);
+				bool make = false;
+				for (int i = 0; i < 5; i++) {
+					red.it %=5;
+					if (red.life >= red.troop[red.it]) {
+						red.troopnum[red.it]++;
+						red.wholetroop++;
+						cout << " red "<<redt[red.it]<<" " << red.wholetroop << " born with strength "<<red.troop[red.it]<<",";
+						cout << red.troopnum[red.it] << " " << redt[red.it] << " in red headquarter" << endl;
+						red.life -= red.troop[red.it];
+						make = true;
+						red.it++;
+						break;
+					}
+					red.it++;
+				}
+				if(!make)//红魔军团不能制造武士了
+				{
+					cout << " red headquarter stops making warriors" << endl;
+					red.stop = true;
+				}
+			}
+
+			//蓝魔军团部分
+			if (!blue.stop) {
+				printtime(time);
+				bool make = false;
+				for (int i = 0; i < 5; i++) {
+					blue.it %= 5;
+					if (blue.life >= blue.troop[blue.it]) {
+						blue.troopnum[blue.it]++;
+						blue.wholetroop++;
+						cout << " blue " << bluet[blue.it] << " " << blue.wholetroop << " born with strength " << blue.troop[blue.it] << ",";
+						cout << blue.troopnum[blue.it] << " " << bluet[blue.it] << " in blue headquarter"<<endl;
+						blue.life -= blue.troop[blue.it];
+						make = true;
+						blue.it++;
+						break;
+					}
+					blue.it++;
+				}
+				if (!make)//红魔军团不能制造武士了
+				{
+					cout << " blue headquarter stops making warriors" << endl;
+					blue.stop = true;
+				}
+			}
+
+			time++;
+			stop = red.stop && blue.stop;
+		}
+
+	}
+
+	return 0;
+}
