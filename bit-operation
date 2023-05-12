@@ -1,0 +1,40 @@
+//位运算技巧总结
+#include<iostream>
+using namespace std;
+//与运算：取某一位数、将某些位清零
+//或运算：将某些位化为1
+//异或运算：将某些位取反
+
+void swop(int& a, int& b) {
+	//实现两个整数的交换
+	a = a ^ b;
+	b = a ^ b;
+	a = a ^ b;
+}
+
+//使用位运算进行四则运算
+int arithmetic(int a,int b, const char& c) {
+	//在减法程序中不会使用取负数这一操作
+	switch (c) {
+	case('+'): {
+		int sum, carry;
+		do {
+			sum = a ^ b;
+			carry = (a & b) << 1;
+			a = sum;
+			b = carry;
+		} while (carry);
+		return sum;
+		break;
+	}
+	case('-'): 
+		return arithmetic(a, (arithmetic((~b), 1, '+')), '+');
+		break;
+	
+	}
+}
+int main() {
+	int a = 10, b = 20;
+	cout << arithmetic(a, b, '+') << endl;
+	cout << arithmetic(a, b, '-') << endl;
+}
