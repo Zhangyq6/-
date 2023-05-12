@@ -1,0 +1,206 @@
+#include<iostream>
+#include<string>
+#include<cmath>
+#include<iomanip>
+using namespace std;
+//三种武器，由于武器仅有名称的区别，目前不将其设置为一个单独的类
+string Weapon[3] = { "sword","bomb","arrow" };
+//每种武士的生命元
+int dragon, ninja, iceman, lion, wolf;
+void printtime(int time);
+
+//五种武士的基类
+class Warrior {
+public:
+	string name;//武士的名字
+	int life;//制造武士需要的生命元数目
+	Warrior(string _name, int _life) :name(_name), life(_life) {}
+};
+//dragon类
+class Dragon :public Warrior {
+public:
+	string weapon;//dragon降生时携带的武器
+	double morale;
+	Dragon(int life) :Warrior("dragon", life) {	}
+	void set(int rnumber, int serial) {
+		weapon = Weapon[serial % 3];
+		morale = (double)rnumber / (double)life;
+	}
+	//针对dragon的输出函数
+	void print() {
+		//It has a arrow,and it's morale is 23.34
+		cout << "It has a " << weapon << ",and it's morale is " <<fixed<<setprecision(2)<<round(morale*100)/(double)100 << endl;
+	}
+};
+//ninja类
+class Ninja :public Warrior {
+public:
+	string weapon[2];
+	Ninja(int life) :Warrior("ninja", life) {	}
+	void set(int serial) {
+		weapon[0] = Weapon[serial % 3];
+		weapon[1] = Weapon[(serial + 1) % 3];
+	}
+	//针对ninja的输出函数
+	void print() {
+		cout << "It has a " << weapon[0] << " and a " << weapon[1] << endl;
+	}
+};
+//iceman类
+class Iceman :public Warrior {
+public:
+	string weapon;
+	Iceman(int life) :Warrior("iceman", life) {	}
+	void set(int serial) {
+		weapon = Weapon[serial % 3];
+	}
+	//针对iceman的输出函数
+	void print() {
+		cout << "It has a " << weapon << endl;
+	}
+};
+//lion类
+class Lion :public Warrior {
+public:
+	int loyalty = 0;
+	Lion(int life) :Warrior("lion", life) {}
+	void set(int rnumber) {
+		loyalty = rnumber;
+	}
+	//针对lion的输出函数
+	void print() {
+		cout << "It's loyalty is " << loyalty << endl;
+	}
+};
+//wolf类
+class Wolf :public Warrior {
+public:
+	Wolf(int life) :Warrior("wolf", life) {}
+};
+
+
+
+//司令部类
+class HeadP {
+public:
+	int life;//该司令部的总生命元
+	int wholeNum = 0;//总的武士数目
+	bool con;//是否停止制造武士
+	string color;//所属军队
+	int it = 0;//当前应该制造的武士编号（0~5）
+	int armyNum[5] = { 0 };//已制造的武士的数目
+	int armyMem[5];//制造武士的顺序——储存每个武士的生命值
+	string armyname[5];//武士的名称
+	//红方司令部按照 iceman、lion、wolf、ninja、dragon 的顺序循环制造武士。
+	//蓝方司令部按照 lion、dragon、ninja、iceman、wolf 的顺序循环制造武士。
+	HeadP(int wholelife, string _color) :color(_color), life(wholelife) {
+		con = false;
+		if (color == "red") {
+			armyMem[0] = iceman;
+			armyname[0] = "iceman";
+			armyMem[1] = lion;
+			armyname[1] = "lion";
+			armyMem[2] = wolf;
+			armyname[2] = "wolf";
+			armyMem[3] = ninja;
+			armyname[3] = "ninja";
+			armyMem[4] = dragon;
+			armyname[4] = "dragon";
+		}
+		else {
+			armyMem[0] = lion;
+			armyname[0] = "lion";
+			armyMem[1] = dragon;
+			armyname[1] = "dragon";
+			armyMem[2] = ninja;
+			armyname[2] = "ninja";
+			armyMem[3] = iceman;
+			armyname[3] = "iceman";
+			armyMem[4] = wolf;
+			armyname[4] = "wolf";
+		}
+	}
+
+	void MakeWarrior(int time) {
+		//判断是否可以制造武士
+		if (!con) {
+			printtime(time);
+			bool makecon = false;//判断是否可以制造武士
+			for (int i = 0; i < 5; i++) {
+				it %= 5;
+				//判断当前编号的武士是否可以被制造
+				if (life >= armyMem[it]) {
+					armyNum[it]++;
+					wholeNum++;
+					cout << " " << color <<" " << armyname[it] << " " << wholeNum << " born with strength " << armyMem[it] << ",";
+					cout << armyNum[it] << " " << armyname[it] << " in " << color << " headquarter" << endl;
+					life -= armyMem[it];
+					//每种武士降生时的特殊情况
+					if (armyname[it] == "dragon") {
+						Dragon d(armyMem[it]);
+						d.set(life, wholeNum);
+						d.print();
+					}
+					else if (armyname[it] == "ninja") {
+						Ninja n(armyMem[it]);
+						n.set(wholeNum);
+						n.print();
+					}
+					else if (armyname[it] == "iceman") {
+						Iceman i(armyMem[it]);
+						i.set(wholeNum);
+						i.print();
+					}
+					else if (armyname[it] == "lion") {
+						Lion l(armyMem[it]);
+						l.set(life);
+						l.print();
+					}
+					it++;
+					makecon = true;
+					break;
+				}
+				it++;
+			}
+			//不能制造武士了
+			if (!makecon) {
+				cout << " " << color << " headquarter stops making warriors" << endl;
+				con = true;
+			}
+		}
+	}
+};
+
+
+
+int main() {
+	int t = 0; cin >> t;
+	for (int i = 0; i < t; i++) {
+		int wholelife = 0;//司令部总生命元
+		cin >> wholelife;
+		cin >> dragon >> ninja >> iceman >> lion >> wolf;
+		cout << "Case:" << i + 1 << endl;
+		int time = 0;//时间
+		bool stop = false;//制造士兵的循环是否停止
+		HeadP RED(wholelife, "red");
+		HeadP BLUE(wholelife, "blue");
+		while (!stop) {
+			RED.MakeWarrior(time);
+			BLUE.MakeWarrior(time);
+			stop = RED.con && BLUE.con;
+			time++;
+		}
+	}
+
+	return 0;
+}
+
+//输出000类的函数
+void printtime(int time) {
+	string timep;
+	timep = to_string(time);
+	while (timep.size() < 3) {
+		timep = "0" + timep;
+	}
+	cout << timep;
+}
