@@ -1,0 +1,763 @@
+#include<iostream>
+#include<iomanip>
+#include<cmath>
+#include<string>
+#include<vector>
+#include<algorithm>
+using namespace std;
+
+//输出时间的函数
+void PrintTime(const int& hour, const int& minute) {
+	string timep;
+	timep = to_string(hour);
+	while (timep.size() < 3) {
+		timep = "0" + timep;
+	}
+	string minutep;
+	minutep = to_string(minute);
+	while (minutep.size() < 2) {
+		minutep = "0" + minutep;
+	}
+	cout << timep << ":" << minutep << " ";
+
+}
+
+//武器的基类
+class Weapon {
+public:
+	int Used;
+	Weapon(int num) :weapon_num(num), Used(0) {}
+	const int weapon_num;//武器的编号
+	//查询武器攻击力的函数
+	virtual int Get_force(const int force) = 0;
+
+};
+
+//Sword类
+class Sword :public Weapon {
+public:
+	Sword() :Weapon(0) {}
+	virtual int Get_force(const int force) {
+		return force * 2 / 10;
+	}
+
+};
+
+//Bomb类
+class Bomb :public Weapon {
+public:
+	Bomb() :Weapon(1) {}
+	virtual int Get_force(const int force) {
+		return force * 4 / 10;
+	}
+
+};
+
+//Arrow类
+class Arrow :public Weapon {
+public:
+	int Used;//使用过几次
+	Arrow() :Weapon(2) {}
+	virtual int Get_force(const int force) {
+		return force * 3 / 10;
+	}
+
+};
+//战斗前武器排序
+bool compare(Weapon* w1, Weapon* w2) {
+	if (w1->weapon_num < w2->weapon_num)
+		return true;
+	else if (w1->weapon_num == 2 && w2->weapon_num == 2)
+		return w1->Used > w2->Used;
+	else
+		return false;
+}
+//缴获时武器排序
+bool compare_wolf(Weapon* w1, Weapon* w2) {
+	if (w1->weapon_num < w2->weapon_num)
+		return true;
+	else if (w1->weapon_num == 2 && w2->weapon_num == 2)
+		return w1->Used < w2->Used;
+	else
+		return false;
+}
+
+//武士的基类
+class Warriors {
+	friend class Wolf;
+	friend class Head;
+protected:
+	int Warriors_Num;//武士的编号
+	string Name;//武士的名字
+	static int ini_HP;//初始生命值
+	int cur_HP;//当前生命值
+	static int ini_force;//初始攻击力
+	int cur_force;//当前攻击力
+	string color;//武士所属司令部
+	int weapon_force;//手中所持武器的总攻击力（用于判断战斗是否停止）
+	int weapon_index = 0;//该用哪种武器进行进攻
+	int sword_num = 0;
+	int bomb_num = 0;
+	int arrow_num = 0;
+	int Loyalty;
+public:
+	vector<Weapon*>weapon;//武士的武器
+
+	Warriors(int num, string _color, string _name) :Warriors_Num(num), color(_color), Name(_name) {	};
+
+	//武士降生函数
+	virtual void Birth(const int& hour) {}
+
+	//武士报告weapon情况
+	void Report_Weapon(const int& hour) {
+		PrintTime(hour, 55);
+		//计算每一种武器的数量
+		sword_num = 0;
+		bomb_num = 0;
+		arrow_num = 0;
+		for (int i = 0; i < weapon.size(); ++i) {
+			if (weapon[i]->weapon_num == 0)
+				sword_num++;
+			else if (weapon[i]->weapon_num == 1)
+				bomb_num++;
+			else
+				arrow_num++;
+		}
+		//000:55 blue wolf 2 has 2 sword 3 bomb 0 arrow and 7 elements
+		cout << color << " " << Name << " " << Warriors_Num << " has " << sword_num << " sword " << bomb_num << " bomb " << arrow_num << " arrow and " << cur_HP << " elements" << endl;
+	}
+
+	//武士重新排列自己手中的武器
+	void Permutation() {
+		sort(weapon.begin(), weapon.end(), compare);
+		weapon_index = 0;
+	}
+
+	//前进输出函数
+	void PirntGO(int& city, const int& hour) {
+		//000:10 blue lion 1 marched to city 1 with 10 elements and force 5
+		PrintTime(hour, 10);
+		cout << color << " " << Name << " " << Warriors_Num << " marched to city " << city << " with " << cur_HP << " elements and force " << cur_force << endl;
+	}
+
+	//占领对方司令部的输出函数
+	void Occupy(const int& hour) {
+		//001:10 red iceman 1 reached blue headquarter with 20 elements and force 30
+		PrintTime(hour, 10);
+		cout << color << " " << Name << " " << Warriors_Num << " reached " << (color == "red" ? "blue" : "red") << " headquarter with " << cur_HP << " elements and force " << cur_force << endl;
+	}
+
+	//缴获对方武器的函数
+	void Capture(Warriors* warrior) {
+		//对方手里没有武器，不抢
+		if (warrior->weapon.size() == 0)
+			return;
+
+		//抢夺前重新排列优先顺序
+		sort(warrior->weapon.begin(), warrior->weapon.end(), compare_wolf);
+
+		//进行抢夺
+		while (weapon.size() < 10 && warrior->weapon.size() > 0) {
+			weapon.push_back(warrior->weapon[0]);
+			warrior->weapon.erase(warrior->weapon.begin());
+		}
+
+		warrior->Permutation();
+
+	}
+
+	//virtual函数
+	virtual int Return_Loyalty() {
+		return Loyalty;
+	}
+	virtual void cheer(const int& hour, const int& cityNum) {}
+	virtual void Goahead() {
+		cur_HP -= cur_HP * 1 / 10;
+	}
+	virtual void Snatch(Warriors* warrior, const int& hour, int citynum) {}
+
+	//攻击与被攻击函数
+	void Attack(Warriors* w) {
+		weapon_index %= weapon.size();
+		int hurt = weapon[weapon_index]->Get_force(cur_force);
+		w->Injury(hurt);
+		if (weapon[weapon_index]->weapon_num == 1)
+		{
+			if (Name != "ninja")
+				this->Injury(hurt * 5 / 10);
+			weapon.erase(weapon.begin() + weapon_index);
+			weapon_index--;
+		}
+		else if (weapon[weapon_index]->weapon_num == 2) {
+			weapon[weapon_index]->Used++;
+			if (weapon[weapon_index]->Used >= 2) {
+				weapon.erase(weapon.begin() + weapon_index);
+				weapon_index--;
+			}
+		}
+		weapon_index++;
+	}
+	virtual void Injury(int hurt) {
+		cur_HP -= hurt;
+	}
+
+	//判断一个武士是否为wolf
+	bool Is_wolf() { return Name == "wolf"; }
+	string GetName() { return Name; }
+	int GetNum() { return Warriors_Num; }
+	bool Is_Death() { return cur_HP <= 0; }//判断该武士是否战死
+	int GetcurHP() { return cur_HP; }
+	int GetWeaponForce() {
+		weapon_force = 0;
+		for (int i = 0; i < weapon.size(); ++i)
+		{
+			if (weapon[i]->weapon_num == 1 || weapon[i]->weapon_num == 2)
+				return 1;
+			weapon_force += weapon[i]->Get_force(cur_force);
+		}
+		return weapon_force;
+	}
+};
+
+//Dragon类
+class Dragon :public Warriors {
+private:
+
+public:
+	static int ini_HP;//初始生命值
+	static int ini_force;//初始攻击力
+	Dragon(int num, string _color) :Warriors(num, _color, "dragon") {
+		cur_HP = ini_HP;
+		cur_force = ini_force;
+		//获取weapon
+		if (Warriors_Num % 3 == 0)
+			weapon.push_back(new Sword);
+		else if (Warriors_Num % 3 == 1)
+			weapon.push_back(new Bomb);
+		else
+			weapon.push_back(new Arrow);
+	}
+
+	//武士降生函数
+	void Birth(const int& hour) {
+		PrintTime(hour, 0);
+		//000:00 blue dragon 1 born
+		cout << color << " dragon " << Warriors_Num << " born" << endl;
+	}
+
+	//欢呼函数
+	void cheer(const int& hour, const int& cityNum) {
+		PrintTime(hour, 40);
+		//003:40 blue dragon 2 yelled in city 4
+		cout << color << " dragon " << Warriors_Num << " yelled in city " << cityNum << endl;
+	}
+};
+
+//Ninja类
+class Ninja :public Warriors {
+public:
+	static int ini_HP;//初始生命值
+	static int ini_force;//初始攻击力
+	Ninja(int num, string _color) :Warriors(num, _color, "ninja") {
+		cur_HP = ini_HP;
+		cur_force = ini_force;
+		//获取weapon
+		if (Warriors_Num % 3 == 0)
+		{
+			weapon.push_back(new Sword);
+			weapon.push_back(new Bomb);
+		}
+		else if (Warriors_Num % 3 == 1)
+		{
+			weapon.push_back(new Bomb);
+			weapon.push_back(new Arrow);
+		}
+		else
+		{
+			weapon.push_back(new Arrow);
+			weapon.push_back(new Sword);
+		}
+	}
+	//武士降生函数
+	void Birth(const int& hour) {
+		PrintTime(hour, 0);
+		cout << color << " ninja " << Warriors_Num << " born" << endl;
+	}
+};
+
+//iceman类
+class Iceman :public Warriors {
+public:
+	static int ini_HP;//初始生命值
+	static int ini_force;//初始攻击力
+	Iceman(int num, string _color) :Warriors(num, _color, "iceman") {
+		cur_HP = ini_HP;
+		cur_force = ini_force;
+		//获取weapon
+		if (Warriors_Num % 3 == 0)
+			weapon.push_back(new Sword);
+		else if (Warriors_Num % 3 == 1)
+			weapon.push_back(new Bomb);
+		else
+			weapon.push_back(new Arrow);
+	}
+	//武士降生函数
+	void Birth(const int& hour) {
+		PrintTime(hour, 0);
+		cout << color << " iceman " << Warriors_Num << " born" << endl;
+	}
+
+	//iceman前进生命值减少的函数
+	virtual void Goahead() {
+		cur_HP -= cur_HP * 1 / 10;
+	}
+};
+
+//lion类
+class Lion :public Warriors {
+	int Loyalty;
+public:
+	static int ini_HP;//初始生命值
+	static int ini_force;//初始攻击力
+	static int per_reduce;//lion每走一步loyalty降低的值
+	Lion(int num, int ResidueLife, string _color) :Warriors(num, _color, "lion"), Loyalty(ResidueLife) {
+		cur_HP = ini_HP;
+		cur_force = ini_force;
+		Loyalty = ResidueLife;
+		//获取weapon
+		if (Warriors_Num % 3 == 0)
+			weapon.push_back(new Sword);
+		else if (Warriors_Num % 3 == 1)
+			weapon.push_back(new Bomb);
+		else
+			weapon.push_back(new Arrow);
+	}
+	virtual int Return_Loyalty() {
+		return Loyalty;
+	}
+	//武士降生函数
+	void Birth(const int& hour) {
+		PrintTime(hour, 0);
+		cout << color << " lion " << Warriors_Num << " born" << endl;
+		//Its loyalty is 10
+		cout << "Its loyalty is " << Loyalty << endl;
+	}
+	//lion前进Loyalty减少的函数
+	virtual void Goahead() {
+		Loyalty -= Lion::per_reduce;
+	}
+};
+
+//wolf类
+class Wolf :public Warriors {
+public:
+	static int ini_HP;//初始生命值
+	static int ini_force;//初始攻击力
+	Wolf(int num, string _color) :Warriors(num, _color, "wolf") {
+		cur_HP = ini_HP;
+		cur_force = ini_force;
+	}
+	//武士降生函数
+	void Birth(const int& hour) {
+		PrintTime(hour, 0);
+		cout << color << " wolf " << Warriors_Num << " born" << endl;
+	}
+	//缴获武器
+	void Snatch(Warriors* warrior, const int& hour, int citynum) {
+		//对方手里没有武器，不抢
+		if (warrior->weapon.size() == 0)
+			return;
+		//将要抢夺的对方手中武器的编号
+		int min_num = warrior->weapon[0]->weapon_num;
+
+		//计算最大抢夺的数目
+		int maxcount = 0;
+		for (int i = 0; i < warrior->weapon.size(); ++i) {
+			if (warrior->weapon[i]->weapon_num == min_num)
+				maxcount++;
+		}
+		//计算实际可以抢夺的数目
+		int rcount = 10 - weapon.size();
+		rcount = min(rcount, maxcount);
+		//抢夺前重新排列优先顺序
+		sort(warrior->weapon.begin(), warrior->weapon.end(), compare_wolf);
+
+		//进行抢夺
+		for (int i = 0; i < rcount; ++i) {
+			weapon.push_back(warrior->weapon[0]);
+			warrior->weapon.erase(warrior->weapon.begin());
+		}
+
+		sort(warrior->weapon.begin(), warrior->weapon.end(), compare);
+
+		//输出抢夺内容
+		PrintTime(hour, 35);
+		string t;
+		if (min_num == 0)
+			t = "sword";
+		else if (min_num == 1)
+			t = "bomb";
+		else
+			t = "arrow";
+		//000:35 blue wolf 2 took 3 bomb from red dragon 2 in city 4
+		cout << color << " wolf " << Warriors_Num << " took " << rcount << " " << t << " from " << warrior->color << " " << warrior->Name << " " << warrior->Warriors_Num << " in city " << citynum << endl;
+	}
+};
+
+//司令部类
+class Head {
+	string color;//司令部颜色
+public:
+	static int ini_HP;//司令部的初始生命元
+	int cur_HP;//司令部当前的生命元
+	int make_order[5] = { 0 };//司令部制造武士的顺序
+	int cur_index = 0;//准备制造武士的索引
+	int cur_num = 1;//准备制造武士的编号
+	int warriors_count[5] = { 0 };//每种武士的数目
+	bool make_or_not = true;//是否继续制造武士
+	vector<Warriors*>warriors;//每个司令部制造的武士
+	int warriors_HP[5] = { Dragon::ini_HP,Ninja::ini_HP,Iceman::ini_HP,Lion::ini_HP,Wolf::ini_HP };//记录制造每种武士所需要的生命元数目
+	static int cur_hour;//当前的时间
+
+	Head(string _color) :color(_color) {
+		//分类讨论两个司令部制造武士的顺序dragon/ninja/iceman/lion/wolf
+		/*红方司令部按照iceman、lion、wolf、ninja、dragon 的顺序制造武士。
+		蓝方司令部按照lion、dragon、ninja、iceman、wolf 的顺序制造武士。*/
+		if (color == "red") {
+			make_order[0] = 3;
+			make_order[1] = 4;
+			make_order[2] = 5;
+			make_order[3] = 2;
+			make_order[4] = 1;
+		}
+		else {
+			make_order[0] = 4;
+			make_order[1] = 1;
+			make_order[2] = 2;
+			make_order[3] = 3;
+			make_order[4] = 5;
+		}
+		cur_HP = ini_HP;
+	}
+
+	//制造武士的函数
+	Warriors* Make_warriors() {
+		//判断是否继续制造
+		if (!make_or_not)
+			return NULL;
+		cur_index %= 5;
+		//当该司令部不能制造本该要制造的武士时，该司令部将永久停止制造武士
+		if (cur_HP < warriors_HP[make_order[cur_index] - 1]) {
+			make_or_not = false;
+			return NULL;
+		}
+
+		cur_HP -= warriors_HP[make_order[cur_index] - 1];
+		//分别判断该制造哪种武士
+		switch (make_order[cur_index]) {
+		case 1: {
+			warriors.push_back(new Dragon(cur_num, color));
+			//cout << color << "dragon";
+			break;
+		}
+		case 2: {
+			warriors.push_back(new Ninja(cur_num, color));
+			//cout << "ninja";
+			break;
+		}
+		case 3: {
+			warriors.push_back(new Iceman(cur_num, color));
+			//cout << "iceman";
+			break;
+		}
+		case 4: {
+			warriors.push_back(new Lion(cur_num, cur_HP, color));
+			//cout << color << "lion";
+			break;
+		}
+		case 5: {
+			warriors.push_back(new Wolf(cur_num, color));
+			//cout << "wolf";
+			break;
+		}
+
+		}
+
+		//输出武士降生
+		warriors[warriors.size() - 1]->Birth(cur_hour);
+		cur_index++;
+		cur_num++;
+
+		return warriors[warriors.size() - 1];
+	};
+
+	//报告生命元函数
+	void Report_HP(const int& hour) {
+		PrintTime(hour, 50);
+		//001:50 20 elements in red headquarter
+		cout << cur_HP << " elements in " << color << " headquarter" << endl;
+	}
+
+	//lion逃跑函数
+	void Run_away() {
+		for (int i = 0; i < warriors.size(); ++i)
+			if (warriors[i]->GetName() == "lion" && warriors[i]->Return_Loyalty() <= 0) {
+				//000:05 blue lion 1 ran away
+				PrintTime(Head::cur_hour, 5);
+				cout << color << " lion " << warriors[i]->Warriors_Num << " ran away" << endl;
+				warriors.erase(warriors.begin() + i);
+				--i;
+			}
+	}
+
+	//司令部被占据函数
+	void Occupy_H() {
+		PrintTime(Head::cur_hour, 10);
+		//003:10 blue headquarter was taken
+		cout << color << " headquarter was taken" << endl;
+	}
+};
+
+//城市类
+class City {
+public:
+	Warriors* red_warrior = NULL;//指向红司令部武士的指针
+	Warriors* blue_warrior = NULL;//指向蓝司令部武士的指针
+	int city_id;//城市的编号
+	int battle_result;//战斗后的结果
+	City(int id, Warriors* r, Warriors* b) :red_warrior(r), blue_warrior(b), city_id(id) {}
+
+	//判断一个城市是否发生战争的函数
+	bool Battle_ornot() { return (red_warrior != NULL) && (blue_warrior != NULL); }
+
+	//战斗开始前的准备函数
+	void Battle_Front() {
+		//开始前武士重新编排其手中的武器
+		red_warrior->Permutation();
+		blue_warrior->Permutation();
+		//wolf抢夺对方手中的武器(wolf不抢wolf的武器)
+		if (red_warrior->Is_wolf() && !blue_warrior->Is_wolf())
+			red_warrior->Snatch(blue_warrior, Head::cur_hour, city_id);
+		else if (blue_warrior->Is_wolf() && !red_warrior->Is_wolf())
+			blue_warrior->Snatch(red_warrior, Head::cur_hour, city_id);
+	}
+
+	//前进输出函数
+	void PrintGo(int city, string color) {
+		if (color == "red" && red_warrior != NULL)
+			red_warrior->PirntGO(city, Head::cur_hour);
+		if (color == "blue" && blue_warrior != NULL)
+			blue_warrior->PirntGO(city, Head::cur_hour);
+	}
+
+	//战斗函数
+	void Battle() {
+		bool battle_continue = true;//判断战斗是否结束的函数
+		PrintTime(Head::cur_hour, 40);
+		while (battle_continue) {
+			//双方均战死
+			if (red_warrior->Is_Death() && blue_warrior->Is_Death()) {
+				battle_continue = false;
+				//000:40 both red iceman 1 and blue lion 12 died in city 2
+				cout << "both red " << red_warrior->GetName() << " " << red_warrior->GetNum() << " and blue " << blue_warrior->GetName() << " " << blue_warrior->GetNum() << " died in city " << city_id << endl;
+				red_warrior = NULL;
+				blue_warrior = NULL;
+			}
+			//有一方战死另一方还活着
+			else if (!red_warrior->Is_Death() && blue_warrior->Is_Death()) {
+				battle_continue = false;
+				//000:40 red iceman 1 killed blue lion 12 in city 2 remaining 20 elements
+				cout << "red " << red_warrior->GetName() << " " << red_warrior->GetNum() << " killed blue " << blue_warrior->GetName() << " " << blue_warrior->GetNum() << " in city " << city_id << " remaining " << red_warrior->GetcurHP() << " elements" << endl;
+				red_warrior->Capture(blue_warrior);
+				red_warrior->cheer(Head::cur_hour, city_id);
+				blue_warrior = NULL;
+			}
+			else if (red_warrior->Is_Death() && !blue_warrior->Is_Death()) {
+				battle_continue = false;
+				//000:40 red iceman 1 killed blue lion 12 in city 2 remaining 20 elements
+				cout << "blue " << blue_warrior->GetName() << " " << blue_warrior->GetNum() << " killed red " << red_warrior->GetName() << " " << red_warrior->GetNum() << " in city " << city_id << " remaining " << blue_warrior->GetcurHP() << " elements" << endl;
+				blue_warrior->Capture(red_warrior);
+				blue_warrior->cheer(Head::cur_hour, city_id);
+				red_warrior = NULL;
+			}
+			//双方均活着，但都没有杀掉对方的可能，同时包含战斗前双方均没有武器的情况
+			else if (red_warrior->GetWeaponForce() == 0 && blue_warrior->GetWeaponForce() == 0) {
+				battle_continue = false;
+				//000:40 both red iceman 1 and blue lion 12 were alive in city 2
+				cout << "both red " << red_warrior->GetName() << " " << red_warrior->GetNum() << " and blue " << blue_warrior->GetName() << " " << blue_warrior->GetNum() << " were alive in city " << city_id << endl;
+				red_warrior->cheer(Head::cur_hour, city_id);
+				blue_warrior->cheer(Head::cur_hour, city_id);
+			}
+			//回合制进行战斗
+			else {
+				//奇数编号的城市中红武士先进攻
+				if (city_id % 2 == 1) {
+					if (red_warrior->weapon.size() > 0)//先手方必须要有武器
+						red_warrior->Attack(blue_warrior);
+					if (!blue_warrior->Is_Death() && blue_warrior->weapon.size() > 0)
+						blue_warrior->Attack(red_warrior);
+				}
+				//偶数编号的城市中蓝武士先进攻
+				else {
+					if (blue_warrior->weapon.size() > 0)
+						blue_warrior->Attack(red_warrior);
+					if (!red_warrior->Is_Death() && red_warrior->weapon.size() > 0)
+						red_warrior->Attack(blue_warrior);
+				}
+			}
+
+		}
+	}
+
+	//lion逃跑函数
+	void Runaway() {
+		if (red_warrior != NULL && red_warrior->GetName() == "lion" && red_warrior->Return_Loyalty() <= 0)
+			red_warrior = NULL;
+		if (blue_warrior != NULL && blue_warrior->GetName() == "lion" && blue_warrior->Return_Loyalty() <= 0)
+			blue_warrior = NULL;
+	}
+};
+//静态变量的初始化
+int Dragon::ini_HP = 0;
+int Ninja::ini_HP = 0;
+int Iceman::ini_HP = 0;
+int Lion::ini_HP = 0;
+int Wolf::ini_HP = 0;
+int Dragon::ini_force = 0;
+int Ninja::ini_force = 0;
+int Iceman::ini_force = 0;
+int Lion::ini_force = 0;
+int Wolf::ini_force = 0;
+int Head::ini_HP = 0;
+int Lion::per_reduce = 0;
+int Head::cur_hour = 0;
+
+int main() {
+	int t = 0; cin >> t;
+	int tt = 1;
+	while (t--)
+	{
+		int  N, T;//两个司令部之间的城市数量，终止时间
+		cin >> Head::ini_HP >> N >> Lion::per_reduce >> T;
+		cin >> Dragon::ini_HP >> Ninja::ini_HP >> Iceman::ini_HP >> Lion::ini_HP >> Wolf::ini_HP;
+		cin >> Dragon::ini_force >> Ninja::ini_force >> Iceman::ini_force >> Lion::ini_force >> Wolf::ini_force;
+		cout << "Case " << tt++ << ":" << endl;
+		Head::cur_hour = 0;
+
+		Head RED("red");
+		Head BLUE("blue");
+		//创建N+2个城市的对象（其中第一个位红司令部，最后一个为蓝司令部）
+		vector<City*>city;
+		for (int i = 0; i < N + 2; ++i)
+			city.push_back(new City(i, NULL, NULL));
+		while (true)
+		{
+			//0分双方司令部制造武士
+			if (Head::cur_hour * 60 > T)
+				break;
+
+			city[0]->red_warrior = RED.Make_warriors();
+			city[N + 1]->blue_warrior = BLUE.Make_warriors();
+
+			//5分lion逃跑
+			if (Head::cur_hour * 60 + 5 > T)
+				break;
+			RED.Run_away();
+			BLUE.Run_away();
+			for (int i = 1; i < N + 1; ++i)
+				city[i]->Runaway();
+
+			//10分武士前进
+			if (Head::cur_hour * 60 + 10 > T)
+				break;
+			bool occupy = false;
+			if (city[1]->blue_warrior != NULL) {//红司令部被蓝方武士占领
+				city[1]->blue_warrior->Occupy(Head::cur_hour);
+				RED.Occupy_H();
+				occupy = true;
+			}
+			//红方武士
+			for (int i = N + 1; i > 0; --i) {
+				city[i]->red_warrior = city[i - 1]->red_warrior;
+				//iceman
+				if (city[i]->red_warrior != NULL && city[i]->red_warrior->GetName() == "iceman")
+					city[i]->red_warrior->Goahead();
+				//lion
+				if (city[i]->red_warrior != NULL && city[i]->red_warrior->GetName() == "lion")
+					city[i]->red_warrior->Goahead();
+			}
+			city[0]->red_warrior = NULL;
+			//蓝方武士
+			for (int i = 0; i < N + 1; ++i) {
+				city[i]->blue_warrior = city[i + 1]->blue_warrior;
+				//iceman
+				if (city[i]->blue_warrior != NULL && city[i]->blue_warrior->GetName() == "iceman")
+					city[i]->blue_warrior->Goahead();
+				//lion
+				if (city[i]->blue_warrior != NULL && city[i]->blue_warrior->GetName() == "lion")
+					city[i]->blue_warrior->Goahead();
+			}
+			city[N + 1]->blue_warrior = NULL;
+			//武士前进的输出
+			for (int i = 1; i < N + 1; ++i) {
+				city[i]->PrintGo(i, "red");
+				city[i]->PrintGo(i, "blue");
+			}
+			//判断游戏是否结束
+			if (city[N + 1]->red_warrior != NULL) {//蓝司令部被红方武士占领
+				city[N + 1]->red_warrior->Occupy(Head::cur_hour);
+				BLUE.Occupy_H();
+				occupy=true;
+			}
+			if (occupy)
+				break;
+
+			//35分wolf抢夺武器
+			if (Head::cur_hour * 60 + 35 > T)
+				break;
+			for (int i = 1; i < N + 1; ++i) {
+				if (city[i]->Battle_ornot())
+					city[i]->Battle_Front();
+			}
+
+			//40分开始战斗（如果dragon还活着要欢呼）
+			if (Head::cur_hour * 60 + 40 > T)
+				break;
+			for (int i = 1; i < N + 1; ++i)
+				if (city[i]->Battle_ornot())
+					city[i]->Battle();
+			//循环删除已经死亡的武士
+			for (int i = 0; i < RED.warriors.size(); ++i)
+				if (RED.warriors[i]->Is_Death())
+				{
+					RED.warriors.erase(RED.warriors.begin() + i);
+					--i;
+				}
+			for (int i = 0; i < BLUE.warriors.size(); ++i)
+				if (BLUE.warriors[i]->Is_Death())
+				{
+					BLUE.warriors.erase(BLUE.warriors.begin() + i);
+					--i;
+				}
+
+			//50分司令部报告剩余生命元数目
+			if (Head::cur_hour * 60 + 50 > T)
+				break;
+			RED.Report_HP(Head::cur_hour);
+			BLUE.Report_HP(Head::cur_hour);
+
+			//55分每名武士报告持有武器情况
+			if (Head::cur_hour * 60 + 55 > T)
+				break;
+			for (int i = 1; i < N + 1; ++i) {
+				if (city[i]->red_warrior != NULL)
+					city[i]->red_warrior->Report_Weapon(Head::cur_hour);
+				if (city[i]->blue_warrior != NULL)
+					city[i]->blue_warrior->Report_Weapon(Head::cur_hour);
+			}
+
+			Head::cur_hour++;
+		}
+	}
+	return 0;
+}
